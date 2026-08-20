@@ -90,8 +90,6 @@ if [ "$1" == "--restart" ] || [ "$1" == "-r" ] || [ "$1" == "restart" ]; then
     pkill -f "bridge_engine.py" 2>/dev/null || true
     pkill -f "app.py" 2>/dev/null || true
     sleep 0.5
-    PYTHONUNBUFFERED=1 nohup "$DIR/.venv/bin/python" "$DIR/bridge_engine.py" >> "$DIR/bridge.log" 2>&1 < /dev/null &
-    sleep 0.5
     open "$DESKTOP_APP"
     echo "✨ 桌面控制面板与后台引擎已全自动重启就绪！"
 fi
