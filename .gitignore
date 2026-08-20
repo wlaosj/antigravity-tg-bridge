@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# Configuration with Private Tokens
+config.json
+
+# Logs & Runtime State
+*.log
+bridge.log
+bridge.pid
+
+# Downloads & Temp
+downloads/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE & Gemini internal state
+.gemini/
+.vscode/
+.idea/

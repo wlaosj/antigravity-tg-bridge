@@ -1,0 +1,11 @@
+{
+  "telegram_token": "YOUR_TELEGRAM_BOT_TOKEN_HERE",
+  "allowed_user_ids": [
+    123456789
+  ],
+  "default_workspace": "/Users/dv/Desktop/test",
+  "proxy": "",
+  "auto_open_ide": false,
+  "send_diff_after_task": true,
+  "system_instructions": "你是一个运行在开发环境中的全能编程助手，能够直接操作工作区代码并运行测试指令。"
+}
