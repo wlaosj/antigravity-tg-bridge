@@ -83,23 +83,26 @@ def get_service_pid() -> str:
 
 
 def start_service():
-    """启动后台守护服务 (Unix Double-Fork 脱离父进程组，保证 PPID=1 永不被 IDE 退出误杀)"""
+    """启动后台守护服务 (macOS 兼容的独立会话创建，PPID 脱离)"""
     if is_service_running():
         return
-    pid = os.fork()
-    if pid > 0:
-        time.sleep(0.5)
+    cfg = load_config()
+    if not cfg.get("telegram_token", "").strip():
         return
-    os.setsid()
-    pid2 = os.fork()
-    if pid2 > 0:
-        os._exit(0)
-
-    os.chdir(str(DIR))
-    log_fd = open(LOG_FILE, "a", encoding="utf-8")
-    os.dup2(log_fd.fileno(), sys.stdout.fileno())
-    os.dup2(log_fd.fileno(), sys.stderr.fileno())
-    os.execv(str(VENV_PYTHON), [str(VENV_PYTHON), str(ENGINE_PY)])
+    env = dict(os.environ, PYTHONUNBUFFERED="1")
+    try:
+        log_fd = open(LOG_FILE, "a", encoding="utf-8")
+        subprocess.Popen(
+            [str(VENV_PYTHON), str(ENGINE_PY)],
+            stdin=subprocess.DEVNULL,
+            stdout=log_fd,
+            stderr=log_fd,
+            start_new_session=True,
+            env=env,
+            cwd=str(DIR)
+        )
+    except Exception as e:
+        pass
 
 
 def stop_service():
@@ -187,6 +190,9 @@ class AntigravityApp(tk.Tk):
         self.build_ui()
         # 初始化日志视窗内容
         self.init_log_view()
+        # 自动确保后台守护服务拉起运行
+        if not is_service_running():
+            start_service()
         # 立即在主线程同步刷新一次初始状态
         self.refresh_status_ui()
         # 启动日志与状态后台监测
