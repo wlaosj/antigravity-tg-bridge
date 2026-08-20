@@ -62,6 +62,7 @@ LOG_FILE="$DIR/bridge.log"
 # 自动确保后台守护服务已启动 (完全独立后台运行)
 if ! pgrep -f "bridge_engine.py" > /dev/null 2>&1; then
     PYTHONUNBUFFERED=1 nohup "$VENV_PYTHON" "$ENGINE_PY" >> "$LOG_FILE" 2>&1 < /dev/null &
+    disown
 fi
 
 export PYTHONUNBUFFERED=1
