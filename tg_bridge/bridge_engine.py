@@ -433,6 +433,25 @@ async def safe_edit_message(msg, text: str, reply_markup=None, parse_mode: Optio
             pass
 
 
+def is_valid_model_response(step: dict) -> bool:
+    """严格判断是否为 Agent 面向用户的真实回答，杜绝内部工具日志泄露"""
+    if step.get("type") != "PLANNER_RESPONSE":
+        return False
+    content = step.get("content", "").strip()
+    if not content:
+        return False
+    # 过滤系统和工具生成的内部日志
+    if (
+        content.startswith("Created At:")
+        or content.startswith("Completed At:")
+        or content.startswith("The command exited")
+        or "<SYSTEM_MESSAGE>" in content
+        or "Task id \"" in content
+    ):
+        return False
+    return True
+
+
 async def execute_agent_task(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt: str, status_msg):
     """核心 Agent 任务执行、监控与流式回传处理"""
     cfg = load_config()
@@ -504,10 +523,7 @@ async def execute_agent_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
 
             # 分析新产生的所有数据步
             for step in new_lines:
-                source = step.get("source")
-                step_type = step.get("type")
                 tool_calls = step.get("tool_calls", [])
-                content = step.get("content", "")
 
                 # 捕获中间工具调用状态
                 if tool_calls:
@@ -544,9 +560,9 @@ async def execute_agent_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                                 )
                                 last_edit_time = now
 
-                # 捕获 Agent 输出内容
-                if (source == "MODEL" or step_type == "PLANNER_RESPONSE") and content and content.strip():
-                    final_answer = content.strip()
+                # 捕获 Agent 真正的文本回答（杜绝内部工具日志）
+                if is_valid_model_response(step):
+                    final_answer = step.get("content", "").strip()
                     now = asyncio.get_event_loop().time()
                     if (now - last_edit_time) >= 1.0:
                         display_text = final_answer[:3800]
@@ -557,14 +573,13 @@ async def execute_agent_task(update: Update, context: ContextTypes.DEFAULT_TYPE,
                         )
                         last_edit_time = now
 
-            # 真正完成的判定条件：最新的一步必须是 MODEL 且没有未完成的 tool_calls，并且内容已非空
+            # 真正完成的判定条件：必须是 PLANNER_RESPONSE，没有进行中的 tool_calls，并且内容已就绪
             if new_lines:
                 last_step = new_lines[-1]
                 if (
-                    last_step.get("source") == "MODEL"
+                    is_valid_model_response(last_step)
                     and last_step.get("status") == "DONE"
                     and len(last_step.get("tool_calls", [])) == 0
-                    and len(last_step.get("content", "").strip()) > 0
                 ):
                     final_answer = last_step.get("content", "").strip()
                     is_task_complete = True
