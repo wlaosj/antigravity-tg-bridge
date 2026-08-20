@@ -605,9 +605,19 @@ class AntigravityApp(tk.Tk):
 
     def start_log_and_status_monitor(self):
         def monitor():
+            watchdog_counter = 0
             while True:
                 # 刷新状态
                 self.after(0, self.refresh_status_ui)
+
+                # 自动看门狗：如果服务未运行且已配置 Token，自动平滑拉起后台引擎
+                watchdog_counter += 1
+                if watchdog_counter >= 5:  # 每 2 秒巡检一次
+                    watchdog_counter = 0
+                    if not is_service_running():
+                        cfg = load_config()
+                        if cfg.get("telegram_token", "").strip():
+                            start_service()
 
                 # 读取实时日志追加
                 if LOG_FILE.exists():
