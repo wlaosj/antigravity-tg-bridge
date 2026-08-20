@@ -1009,18 +1009,16 @@ def main():
     log("=================================================================")
 
     # 具备无限自动重连保护的守护轮询
-    while True:
-        try:
-            app.run_polling(
-                drop_pending_updates=True,
-                poll_interval=0.5,
-                timeout=20,
-                bootstrap_retries=-1,
-            )
-            break
-        except Exception as e:
-            log(f"⚠️ Telegram 长轮询连接波动，3 秒后自动重连...: {e}")
-            time.sleep(3)
+    try:
+        app.run_polling(
+            drop_pending_updates=False,
+            poll_interval=0.5,
+            timeout=15,
+            bootstrap_retries=-1,
+            stop_signals=None,
+        )
+    except Exception as e:
+        log(f"⚠️ Telegram 长轮询异常退出: {e}")
 
 
 if __name__ == "__main__":
