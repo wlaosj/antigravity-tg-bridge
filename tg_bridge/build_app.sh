@@ -55,28 +55,17 @@ cat <<'EOF' > "$DESKTOP_APP/Contents/MacOS/launcher"
 #!/bin/bash
 DIR="/Users/dv/Desktop/test/tg_bridge"
 VENV_PYTHON="$DIR/.venv/bin/python"
+ENGINE_PY="$DIR/bridge_engine.py"
+APP_PY="$DIR/app.py"
+LOG_FILE="$DIR/bridge.log"
 
-# 自动确保后台守护服务已启动 (Unix Double-Fork 彻底脱离，PPID=1)
+# 自动确保后台守护服务已启动 (完全独立后台运行)
 if ! pgrep -f "bridge_engine.py" > /dev/null 2>&1; then
-    "$VENV_PYTHON" -c "
-import os, sys
-DIR = '$DIR'
-pid = os.fork()
-if pid == 0:
-    os.setsid()
-    pid2 = os.fork()
-    if pid2 == 0:
-        os.chdir(DIR)
-        with open('$DIR/bridge.log', 'a') as f:
-            os.dup2(f.fileno(), sys.stdout.fileno())
-            os.dup2(f.fileno(), sys.stderr.fileno())
-        os.execv('$VENV_PYTHON', ['$VENV_PYTHON', '$DIR/bridge_engine.py'])
-    os._exit(0)
-"
+    PYTHONUNBUFFERED=1 nohup "$VENV_PYTHON" "$ENGINE_PY" >> "$LOG_FILE" 2>&1 < /dev/null &
 fi
 
 export PYTHONUNBUFFERED=1
-exec "$VENV_PYTHON" "$DIR/app.py"
+exec "$VENV_PYTHON" "$APP_PY"
 EOF
 
 chmod +x "$DESKTOP_APP/Contents/MacOS/launcher"
@@ -94,3 +83,15 @@ echo "📍 桌面图标: $DESKTOP_APP"
 echo "📍 应用程序目录: $APPLICATIONS_APP"
 echo "💡 双击运行即可打开暗黑科技风【控制看板】与【图形化设置】！"
 echo "================================================================="
+
+# 7. 如果传入了 --restart 或 -r 参数，自动平滑重启后台引擎与桌面应用
+if [ "$1" == "--restart" ] || [ "$1" == "-r" ] || [ "$1" == "restart" ]; then
+    echo "🔄 正在自动重启后台引擎与桌面控制面板..."
+    pkill -f "bridge_engine.py" 2>/dev/null || true
+    pkill -f "app.py" 2>/dev/null || true
+    sleep 0.5
+    PYTHONUNBUFFERED=1 nohup "$DIR/.venv/bin/python" "$DIR/bridge_engine.py" >> "$DIR/bridge.log" 2>&1 < /dev/null &
+    sleep 0.5
+    open "$DESKTOP_APP"
+    echo "✨ 桌面控制面板与后台引擎已全自动重启就绪！"
+fi
