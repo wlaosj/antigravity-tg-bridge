@@ -644,9 +644,10 @@ async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
             cfg = load_config()
             cfg["default_workspace"] = str(p)
             save_config(cfg)
+            open_ide_window(str(p))
             log(f"📂 自然语言触发：工作区已切换为: {p}")
             await update.message.reply_text(
-                f"✅ **工作区已成功切换为**：\n`{p}`\n\n💡 提示：发送 `/open` 可让 Mac 电脑上的 IDE 自动拉起加载此项目！",
+                f"✅ **工作区已成功切换为**：\n`{p}`\n\n🖥 **已自动在 Mac 屏幕上唤醒 Antigravity IDE 加载新项目！**",
                 reply_markup=get_workspace_quick_keyboard(),
                 parse_mode="Markdown"
             )
@@ -872,9 +873,10 @@ async def cmd_workspace(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cfg = load_config()
     cfg["default_workspace"] = str(p)
     save_config(cfg)
+    open_ide_window(str(p))
     log(f"📂 工作区已切换为: {p}")
     await update.message.reply_text(
-        f"✅ **工作区已切换为**：`{p}`\n💡 发送 `/open` 可让电脑上的 IDE 自动加载打开此目录！",
+        f"✅ **工作区已切换为**：`{p}`\n🖥 **已自动在 Mac 屏幕上唤起 Antigravity IDE 加载新项目！**",
         reply_markup=get_workspace_quick_keyboard(),
         parse_mode="Markdown"
     )
