@@ -13,6 +13,7 @@ import subprocess
 import shutil
 import re
 import time
+import fcntl
 from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple
 
@@ -932,16 +933,17 @@ async def callback_settings_toggle(update: Update, context: ContextTypes.DEFAULT
 # 启动入口与自愈重连轮询
 # ==============================================================================
 def main():
-    # 确保没有其他并发实例竞争 Polling
-    my_pid = os.getpid()
+    # 使用操作系统级 fcntl 文件排他锁，彻底杜绝多实例竞争与 Telegram ConflictError
+    global lock_fd
+    lock_file_path = SCRIPT_DIR / "bridge.lock"
     try:
-        res = subprocess.run(["pgrep", "-f", "bridge_engine.py"], capture_output=True, text=True)
-        for p in res.stdout.splitlines():
-            p = p.strip()
-            if p and p != str(my_pid):
-                subprocess.run(["kill", "-9", p], capture_output=True)
-    except Exception:
-        pass
+        lock_fd = open(lock_file_path, "w")
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        lock_fd.write(str(os.getpid()))
+        lock_fd.flush()
+    except (IOError, BlockingIOError, OSError):
+        log("ℹ️ 检测到后台已有活跃的 bridge_engine 守护进程正在运行，本启动请求自动优雅退出。")
+        sys.exit(0)
 
     cfg = load_config()
     token = cfg.get("telegram_token", "").strip()
