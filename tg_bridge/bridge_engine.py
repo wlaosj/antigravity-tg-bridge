@@ -634,6 +634,27 @@ async def handle_agent_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     log(f"📩 [Telegram] 收到消息 (用户 ID: {user_id}): {prompt}")
 
+    # 智能识别自然语言切换工作区指令（例如：“切换目录到 /Users/dv/Desktop/my_project”）
+    match_ws = re.match(r"^(?:切换工作区|切换目录|切换工作目录|修改工作目录|工作目录切换为|换到目录|cd到?)\s*(?:至|到)?\s*[:：]?\s*(~?/[\w\.\-\_\/\s]+)$", prompt, re.IGNORECASE)
+    if match_ws:
+        raw_path = match_ws.group(1).strip()
+        p = Path(raw_path).expanduser().resolve()
+        if p.exists() and p.is_dir():
+            RUNTIME_STATE["current_workspace"] = str(p)
+            cfg = load_config()
+            cfg["default_workspace"] = str(p)
+            save_config(cfg)
+            log(f"📂 自然语言触发：工作区已切换为: {p}")
+            await update.message.reply_text(
+                f"✅ **工作区已成功切换为**：\n`{p}`\n\n💡 提示：发送 `/open` 可让 Mac 电脑上的 IDE 自动拉起加载此项目！",
+                reply_markup=get_workspace_quick_keyboard(),
+                parse_mode="Markdown"
+            )
+            return
+        else:
+            await update.message.reply_text(f"❌ 路径不存在或不是文件夹：`{p}`", parse_mode="Markdown")
+            return
+
     status_msg = await update.message.reply_text(
         "⏳ **正在连接并派发任务至 Antigravity IDE...**",
         parse_mode="Markdown"
