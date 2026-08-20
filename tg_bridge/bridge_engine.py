@@ -55,16 +55,10 @@ RUNTIME_STATE = {
 
 
 def log(msg: str):
-    """统一记录日志：输出到 stdout (立即 flush) 并直接追加到 bridge.log"""
+    """统一记录日志：输出到 stdout 并由启动器统一写入 bridge.log"""
     timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
     formatted = f"[{timestamp}] {msg}"
     print(formatted, flush=True)
-    try:
-        with open(LOG_PATH, "a", encoding="utf-8") as f:
-            f.write(formatted + "\n")
-            f.flush()
-    except Exception:
-        pass
 
 
 # ==============================================================================

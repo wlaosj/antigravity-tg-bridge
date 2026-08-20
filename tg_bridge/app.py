@@ -572,8 +572,8 @@ class AntigravityApp(tk.Tk):
             try:
                 size = LOG_FILE.stat().st_size
                 with open(LOG_FILE, "r", encoding="utf-8", errors="ignore") as f:
-                    if size > 15000:
-                        f.seek(size - 15000)
+                    if size > 100000:
+                        f.seek(size - 100000)
                         f.readline()  # 跳过半行
                     initial_content = f.read()
                     self.log_pos = f.tell()
