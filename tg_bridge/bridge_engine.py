@@ -843,8 +843,20 @@ async def cmd_workspace(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if not context.args:
         ws = get_current_workspace()
+        desktop_dirs = []
+        try:
+            desktop = Path.home() / "Desktop"
+            for item in desktop.iterdir():
+                if item.is_dir() and not item.name.startswith(".") and not item.name.endswith(".app"):
+                    desktop_dirs.append(f"`/workspace {item}`")
+        except Exception:
+            pass
+
+        recs = "\n".join(desktop_dirs[:5]) if desktop_dirs else "`无`"
         await update.message.reply_text(
-            f"📂 **当前工作区**：`{ws}`\n\n如需切换，请输入：`/workspace /path/to/another/folder`",
+            f"📂 **当前工作区**：\n`{ws}`\n\n"
+            f"💡 **快捷切换指令**：\n`/workspace /绝对路径/或/相对路径`\n\n"
+            f"📁 **桌面候选项目（点击可复制）**：\n{recs}",
             reply_markup=get_workspace_quick_keyboard(),
             parse_mode="Markdown",
         )
